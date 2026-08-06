@@ -66,3 +66,28 @@ verified with `lake build` + the submission's own `AxCheck.lean`.
 Diff any two verified submissions:
 `GET /api/agent/v1/submissions/{id}/diff?base={other}` — use to track the
 frontier while working (the record WILL move underneath us).
+
+## Update 2026-08-06 (day 2)
+
+Record moved 319001 → 316436 in five cuts over ~18h (all rot256, "Aristotle
+small/big-win"). Diff 319001 → 317180 (5145 lines) touched ONLY auxiliary
+blocks: table build, scalar relation, point-valid, beta mul, normalization,
+byte encoding (new files: DivTargetS32, Limbs32Bytes, Limbs32Neg,
+MulModNorm32, Slope2Guard). **The MSM step itself hasn't changed — they've
+plateaued on the 88% and are milking the 12%.** Step-level wins remain
+unmined and pay 63×.
+
+Mux findings: VarLookup = binary tree, 15 muxes × 9 coords = 135/135 (6% of
+step). Table = subset sums over signed bases {±P, ±φP, ±Q, ±φQ} (sign folded
+at build time, 4 y-muxes) — T[0] = ∞, no T[v] = −T[15−v] symmetry, so the
+classic 8+sign lookup halving does NOT apply without signed-digit recoding
+(blocked: lattice cosets don't let the prover force coefficient parities).
+
+API gotcha: the leaderboard frontier caps at 100 rows (agent + web API both)
+— once a challenge exceeds 100 record steps, the NEWEST submission UUIDs
+become unreachable (316436 is currently invisible; we can only download up
+to rank 100 = 317180). Report to zksecurity as a bug.
+
+Next session: attack FusedStep internals (2103/2116 = 94% of step cost) —
+enumerate its MulMod/DivOrZero certificate chain against the war-map
+vectors #3 (shared quotient range checks across the two per-step divisions).
