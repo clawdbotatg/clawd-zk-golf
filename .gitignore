@@ -2,3 +2,4 @@
 zk-golf-challenges/
 study/
 *.tar.gz
+.zkgolf-watch-state.json
