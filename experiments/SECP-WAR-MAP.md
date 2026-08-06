@@ -91,3 +91,30 @@ to rank 100 = 317180). Report to zksecurity as a bug.
 Next session: attack FusedStep internals (2103/2116 = 94% of step cost) —
 enumerate its MulMod/DivOrZero certificate chain against the war-map
 vectors #3 (shared quotient range checks across the two per-step divisions).
+
+## FusedStep audit (2026-08-06 afternoon) — conclusion: locally optimal
+
+Per-step anatomy (2103/2116): SlopeXS 825/830 (λ₁ division 448/450 + x_S
+cert 365/368 + flags), Slope2 451/453 (w division 434/436 + muxes), FinishXY
+809/815 (x₄ cert 365/368 + y₄ cert 440/443), 2 output muxes 9/9.
+
+Every fresh 256-bit value pays ~250 range check + ~105 fold. The fold
+(MulModFold32, 101/103) is the load-bearing trick: base-2^32 pseudo-Mersenne
+`d_k = c_k + 977·c_{k+8} + c_{k+7}` inflates cells only ×979, so the
+reduction quotient is a **single 39-bit wire** + one 48-bit grouped carry.
+
+Candidate we invented and priced out: **defer y₄ across steps** (extend
+their intra-step ELM y_S-elision one level up; y₄ feeds only the next step's
+two numerators). Carrying y₄ unreduced widens both consuming folds'
+quotients from 39-bit wires to ~258-bit witnesses: +424/+438 per step vs the
+440/443 y₄ certificate saved — a wash. Reduce-once is optimal at ≥2
+consumers *because* their reduction is so cheap. Conservation law confirmed.
+
+Also closed: step count 64→63 (needs worst-case 4-dim decomposition below
+0.5·n^(1/4) — false), mux halving (no table symmetry), quotient range-check
+sharing (different values), Jacobian table adds (P=±Q completeness).
+
+**Verdict: rot256's step design is at a genuine local optimum in every
+direction probed. Our secp play is watch-and-wait; a record attempt needs a
+new curve-arithmetic paradigm, not golfing.** The war rig (buildable record
++ this map) stays ready if one appears.
