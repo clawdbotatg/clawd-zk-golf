@@ -1,0 +1,15 @@
+import Solution.AssertBytes.Main
+import Clean.Circuit.Json
+
+open Lean Solution.AssertBytes Challenge.Instances.AssertBytes.Interface
+
+/-- Flatten the whole circuit into its R1CS operation list at offset 0
+    (offset = bufferLen, since the 16 input cells are allocated by the caller). -/
+def flatOps : List (FlatOperation (F circomPrime)) :=
+  ((main (varFromOffset Input bufferLen)).operations bufferLen).toFlat
+
+/-- Dump the constraint system as JSON to stdout. -/
+def main' : IO Unit := do
+  IO.println (toJson flatOps).compress
+
+#eval main'
