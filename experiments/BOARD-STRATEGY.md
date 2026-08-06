@@ -94,3 +94,53 @@ agent: is windowZ/winF verification square-specific or general-convolution?
 The windowZ grouping (fold 9 adjacent conv outputs into one window sum) is
 purely output-structure and feeds the same grouped-carry chain for BOTH
 products — suggesting it MIGHT generalize. Crux unresolved.
+
+## FINAL VERDICT (2026-08-06) — board is at its optimum
+
+All 9 challenges audited. RSA q·n crux SETTLED (deep source read):
+- q·n is NOT raw — it's interpolation-certified at 2m−1 eval points
+  (⟨340,341⟩, one product/point, top coeff affine). Near-optimal already.
+- Windowing DOES generalize to q·n BUT the square's symmetric high-part (4
+  rank-1 products) becomes bilinear-rank-8 for a general product → windowed
+  q·n = ⟨334,334⟩ vs current ⟨340,341⟩. Saving only ~13/battery × ~16 ≈
+  **~220 points** (0.07%), for days of the hardest Lean in the repo. The
+  factor-2 symmetry gap is a real mathematical obstruction. NOT worth it
+  unless a record race comes down to <250 points. My earlier ~5k estimate
+  was wrong (assumed it could match the square's 372; it can't).
+
+Both GF(2) hash records = walls: gf2-blake3 is literally at the
+multiplicative-complexity floor every row (2-add=31=n−1, 3-add=61=2n−3 CSA,
+IV constants squeezed exact); gf2-sha256 has Ch/Maj at 1-AND/bit floor,
+adders at n−1, sits 358 ANDs below Bristol SHA-256. O(10) rows slack each,
+research-grade.
+
+### The complete board (all optimal or within rounding error)
+| challenge | verdict |
+|---|---|
+| assert-bytes | we tie 240; R1CS-no-lookup optimal |
+| sha256-hash | ~10 rows slack, held-bit research tricks |
+| keccak-f1600 | proven bit-paradigm floor |
+| rsa-4096 | carry tight; q·n saves ~220 for days of work |
+| secp var-base | step locally optimal |
+| secp fixed-base | harvested; structural-only, ceilings ~1-2.5k but hard |
+| gf2-sha256 | Ch/Maj + adders at MC floor |
+| gf2-blake3 | literally at the floor, solved |
+| gf2-k12 | proven local floor = par |
+
+### Why: the range-check economy is the whole game
+70-84% of every big-field record is range-checking at exactly 2 score/bit
+(n−1 witnessed bits + implied top). This is the R1CS-no-lookup floor for a
+single value; lazy/deferred reduction (consumer-count rule) is the only
+amortization and rot256 already applies it everywhere. **The ONLY thing that
+beats this board is a sub-2/bit range-certification primitive without
+lookups** — an open research problem. If it exists it breaks EVERY big-field
+record 2-4× at once (cf. gnark LogUp 294879 vs no-lookup 1311228 = 4.4×).
+That, not golfing, is the win condition.
+
+### Strategy going forward
+1. Watcher stays live — new challenges launch at record=par (cheapest crown).
+2. The real research bet: sub-2/bit range certification (literature sweep:
+   Bulletproofs-style inner products in-circuit, algebraic set-membership,
+   Lagrange/Vandermonde batch arguments) — deferred, high-risk/high-reward.
+3. Do NOT grind gadget-level on any current record; all are at/near optimum.
+   Confirmed by 9/9 audits + 3 independent impossibility-library findings.
