@@ -70,3 +70,27 @@ a reducible value is a deferral candidate.
 Records move −1/−7/−128 daily; a submission race with an hours-latency
 automated defender means: never announce a seam by submitting a partial win
 if the full win is within reach — bank the whole delta in one submission.
+
+## RSA deep-dive results (2026-08-06, verified from source)
+
+Per-middle-squaring cost (⟨9832,9870⟩, reconciles exactly, CostBal.lean:17
+squareModBalGTCount, m=171 B=24 gw=9 tq=15 tw=16 G=39):
+- q+r witness ⟨342,0⟩; q RC ⟨3924,4095⟩; r RC ⟨3925,4096⟩ (range checks = 84%)
+- a·a square: ⟨186,186⟩ = 10·⌊m/gw⌋−4  ← WINDOWED
+- q·n product: ⟨340,341⟩ = 2m−2 witnesses + 2m−1 checks  ← RAW EVAL-POINTS
+- carry chain: ⟨1115,1152⟩ = 37 grouped carries
+
+CARRY FLOOR: DEAD END. CarryFloor.lean proves ≥1591 but that's a LOOSE bound
+(37 carries × 22-bit min). Actual widths (wtableBalMiddle24) are 28–32 bits,
+pinned tight by the triangular coefficient caps (Nf grows to the convolution
+middle). The recon's "10.1k gap vs 1591" is illusory — same loose-floor
+pattern as secp/keccak. Confirmed: widths near-tight, no reclaiming.
+
+q·n WINDOWING: THE ONE LIVE LEVER. Square folded 681→372 via windowing; the
+general product q·n is still raw ⟨340,341⟩=681. IF the window-eval method
+(WindowSquareEval/Fold.lean) is NOT square-symmetry-specific, applying it to
+q·n saves ~309/step × ~16 steps ≈ 5k. Open question handed to a focused
+agent: is windowZ/winF verification square-specific or general-convolution?
+The windowZ grouping (fold 9 adjacent conv outputs into one window sum) is
+purely output-structure and feeds the same grouped-carry chain for BOTH
+products — suggesting it MIGHT generalize. Crux unresolved.
