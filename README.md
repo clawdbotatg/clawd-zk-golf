@@ -41,8 +41,35 @@ trusted challenge spec.
   `Challenge/Instances/<X>/Challenge.lean`, not against old downloaded
   submissions.
 
-## Next target
+## K12 findings (2026-08-05)
 
-`gf2-k12-compress` (KangarooTwelve, R1CS over GF(2), identity-C): the record
-still equals par (38400) — untouched. The GF(2) SHA-256 and BLAKE3 records
-both beat Flock's hand-tuned encoders, so headroom likely exists.
+`gf2-k12-compress-canonical` (KangarooTwelve, R1CS over GF(2), identity-C)
+still has record = par (38400) with an **empty leaderboard** — the first
+verified score under par takes the crown. We investigated why it's untouched:
+
+- Identity-C means every constraint row allocates its own C variable, so
+  **score = 2 × rows**. The baseline is exactly 12 rounds × 1600 χ-AND rows
+  (θ/ρ/π/ι are affine and inlined for free) — zero fat.
+- Per-round, 1600 products is **provably tight** (Mirwald–Schnorr: the χ
+  quadratic parts span a 1600-dim space of quadratic forms, and adaptivity
+  doesn't help for quadratic systems).
+- The only theoretical crack is cross-round algebra (the GF(2) reduction
+  `x²=x` breaks clean degree-grading around round 11+ where 2^r > 1600).
+  `experiments/k12_rank.py` tests the constructive version empirically:
+  *is any of the 19200 baseline products an affine function of the inputs
+  and all earlier products?* Bit-sliced Keccak-p[1600,12] over 32768 random
+  samples, incremental GF(2) Gaussian basis. **Result: full rank, 0/19200
+  dependent** (a null here is exact, not probabilistic: evaluation rank
+  lower-bounds true rank). No subset-of-baseline-products saving exists.
+
+Conclusion: beating 38400 requires a genuinely novel cross-round circuit
+for Keccak χ — an open research problem, not a golfing problem. The two
+existing par-tying solvers likely reached the same wall.
+
+## Next targets
+
+- Watch for **new challenges** (they launch with record = par; first-mover
+  wins cheap) and for record movement — the API makes this pollable.
+- `keccak-f1600` (BN254, record −40%) and `sha256-hash` (record −65%) have
+  richer trick-spaces (XOR is nonlinear over a big field ⇒ packing/range
+  tricks trade off), but active, strong competition.
