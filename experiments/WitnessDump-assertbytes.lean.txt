@@ -1,0 +1,44 @@
+import Solution.AssertBytes.Main
+import Clean.Circuit.Json
+
+open Lean Solution.AssertBytes Challenge.Instances.AssertBytes.Interface
+
+/-- The flat operation list of the assert-bytes circuit (inputs allocated by
+    the caller at indices 0..15, witnesses start at offset 16). -/
+def flatOps : List (FlatOperation (F circomPrime)) :=
+  ((main (varFromOffset Input 0)).operations bufferLen).toFlat
+
+/-- Run the witness generators on a concrete input (16 byte values) and return
+    the full witness value list. `init` seeds the caller-input cells 0..15. -/
+def witnessValues (inputBytes : List (F circomPrime)) : List (F circomPrime) :=
+  let all := FlatOperation.dynamicWitnesses flatOps (ProverHint.empty _) inputBytes
+  -- drop the 16 seeded inputs; keep only the generated witnesses
+  all.drop bufferLen
+
+/-- A splitmix64-style avalanche hash → independent high-entropy bytes.
+    (LCG low bits are correlated; this mixes so every (sample,pos) byte is
+    effectively independent.) -/
+def mix (x : Nat) : Nat :=
+  let z := (x + 2654435769) % 18446744073709551616
+  let z := ((z ^^^ (z / 4294967296)) * 2246822519) % 18446744073709551616
+  let z := ((z ^^^ (z / 8589934592)) * 3266489917) % 18446744073709551616
+  (z ^^^ (z / 34359738368))
+
+/-- byte at (sample i, position j): a mixed hash, high bits taken. -/
+def byteAt (i j : Nat) : Nat := (mix (i * 65536 + j * 257 + 1)) / 4096 % 256
+
+/-- Generate `n` sample input vectors of 16 bytes each. -/
+def samples (n : Nat) (_s0 : Nat) : List (List (F circomPrime)) :=
+  (List.range n).map (fun i =>
+    (List.range 16).map (fun j => ((byteAt i j : Nat) : F circomPrime)))
+
+/-- Dump: for each sample, the input bytes (as vals) and the witness values. -/
+def main' : IO Unit := do
+  let rows := (samples 260 7).map (fun inp =>
+    Json.mkObj [
+      ("inputs", toJson (inp.map (fun x => (x.val : Nat)))),
+      ("witnesses", toJson ((witnessValues inp).map (fun x => (x.val : Nat))))
+    ])
+  IO.println (Json.arr rows.toArray).compress
+
+#eval main'
